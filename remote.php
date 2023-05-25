@@ -16,7 +16,7 @@ class remote_plugin_move extends DokuWiki_Remote_Plugin
      * @param string $toId
      * @return int
      */
-    public function rename(string $fromId, string $toId)
+    public function renamePage(string $fromId, string $toId)
     {
         // Other RPC methods also implicitly sanitze the name, so ...
         $fromId = cleanID($fromId);
