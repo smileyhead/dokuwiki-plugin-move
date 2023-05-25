@@ -10,7 +10,7 @@
 class remote_plugin_move extends DokuWiki_Remote_Plugin
 {
     /**
-     * Rename function.
+     * Rename a Wiki page using XMLRPC.
      *
      * @param string $fromId
      * @param string $toId
@@ -31,6 +31,29 @@ class remote_plugin_move extends DokuWiki_Remote_Plugin
         }
 
         if (!$moveOperator->movePage($fromId, $toId)) {
+            return 0;
+        }
+
+        return 1;
+    }
+
+    /**
+     * Rename a Wiki media file using XMLRPC.
+     *
+     * @param string $fromId
+     * @param string $toId
+     * @return int
+     */
+    public function renameMedia(string $fromId, string $toId)
+    {
+        // Other RPC methods also implicitly sanitze the name, so ...
+        $fromId = cleanID($fromId);
+        $toId = cleanID($toId);
+
+        /** @var helper_plugin_move_op $MoveOperator */
+        $moveOperator = plugin_load('helper', 'move_op');
+
+        if (!$moveOperator->moveMedia($fromId, $toId)) {
             return 0;
         }
 
