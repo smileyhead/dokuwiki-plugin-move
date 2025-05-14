@@ -8,7 +8,8 @@
 
 namespace dokuwiki\plugin\move;
 
-// must be run within Dokuwiki
+use dokuwiki\File\MediaResolver;
+use dokuwiki\File\PageResolver;
 use dokuwiki\Logger;
 
 /**
@@ -61,7 +62,8 @@ class MoveHandler extends \Doku_Handler {
 
         if($type != 'media' && $type != 'page') throw new \Exception('Not a valid type');
 
-        $old = resolve_id($this->origNS, $old, false);
+        $resolver = new MoveResolver($this->origID);
+        $old = $resolver->resolveId($old);
 
         if($type == 'page') {
             // FIXME this simply assumes that the link pointed to :$conf['start'], but it could also point to another page
@@ -123,18 +125,13 @@ class MoveHandler extends \Doku_Handler {
         if($type != 'media' && $type != 'page') throw new \Exception('Not a valid type');
 
         // first check if the old link still resolves
-        $exists = false;
         $old    = $relold;
         if($type == 'page') {
-            resolve_pageid($this->ns, $old, $exists);
-            // Work around bug in DokuWiki 2020-07-29 where resolve_pageid doesn't append the start page to a link to
-            // the root.
-            if ($old === '') {
-                $old = $conf['start'];
-            }
+            $resolver = new PageResolver($this->id);
         } else {
-            resolve_mediaid($this->ns, $old, $exists);
+            $resolver = new MediaResolver($this->id);
         }
+        $old = $resolver->resolveId($old);
         if($old == $new) {
             return $relold; // old link still resolves, keep as is
         }
