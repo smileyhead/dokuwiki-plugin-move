@@ -1,62 +1,80 @@
 <?php
 
 /**
- * DokuWiki Plugin move (Helper Component)
+ * DokuWiki Plugin move (Remote Component)
  *
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author Claus-Justus Heine <himself@claus-justus-heine.de>
  */
-
 class remote_plugin_move extends DokuWiki_Remote_Plugin
 {
     /**
-     * Rename a Wiki page using XMLRPC.
+     * Rename/move a given page
      *
-     * @param string $fromId
-     * @param string $toId
-     * @return int
+     * @param string $fromId The original page ID
+     * @param string $toId The new page ID
+     * @return true Always true when no error occured
+     * @throws \dokuwiki\Remote\RemoteException when renaming fails
      */
     public function renamePage(string $fromId, string $toId)
     {
-        // Other RPC methods also implicitly sanitze the name, so ...
         $fromId = cleanID($fromId);
         $toId = cleanID($toId);
 
         /** @var helper_plugin_move_op $MoveOperator */
-        $moveOperator = plugin_load('helper', 'move_op');
-        $moveAction = plugin_load('action', 'move_rename');
+        $MoveOperator = plugin_load('helper', 'move_op');
 
-        if (!$moveAction->renameOkay($fromId)) {
-            return 0;
+        global $MSG;
+        $MSG = [];
+        if (!$MoveOperator->movePage($fromId, $toId)) {
+            throw $this->msgToException($MSG);
         }
 
-        if (!$moveOperator->movePage($fromId, $toId)) {
-            return 0;
-        }
-
-        return 1;
+        return true;
     }
 
     /**
-     * Rename a Wiki media file using XMLRPC.
+     * Rename/move a given media file
      *
-     * @param string $fromId
-     * @param string $toId
-     * @return int
+     * @param string $fromId The original media ID
+     * @param string $toId The new media ID
+     * @return true Always true when no error occured
+     * @throws \dokuwiki\Remote\RemoteException when renaming fails
      */
     public function renameMedia(string $fromId, string $toId)
     {
-        // Other RPC methods also implicitly sanitze the name, so ...
         $fromId = cleanID($fromId);
         $toId = cleanID($toId);
 
         /** @var helper_plugin_move_op $MoveOperator */
-        $moveOperator = plugin_load('helper', 'move_op');
+        $MoveOperator = plugin_load('helper', 'move_op');
 
-        if (!$moveOperator->moveMedia($fromId, $toId)) {
-            return 0;
+        global $MSG;
+        $MSG = [];
+        if (!$MoveOperator->moveMedia($fromId, $toId)) {
+            throw $this->msgToException($MSG);
         }
 
-        return 1;
+        return true;
+    }
+
+    /**
+     * Get an exception for the first error message found in the DokuWiki message array.
+     *
+     * Ideally the move operation should throw an exception, but currently only a return code is available.
+     *
+     * @param array $messages The DokuWiki message array
+     * @return \dokuwiki\Remote\RemoteException
+     */
+    protected function msgToException($messages)
+    {
+        foreach ($messages as $msg) {
+            if ($msg['lvl'] === -1) {
+                // error found return it
+                return new \dokuwiki\Remote\RemoteException($msg['msg'], 100);
+            }
+        }
+        // If we reach this point, no error was found
+        return new \dokuwiki\Remote\RemoteException('Unknown error', 100);
     }
 }
