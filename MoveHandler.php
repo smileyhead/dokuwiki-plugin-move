@@ -28,14 +28,6 @@ class MoveHandler extends \Doku_Handler {
     protected $media_moves;
     protected $handlers;
 
-    /**
-     * Do not allow re-using instances.
-     *
-     * @return bool   false - the handler must not be re-used.
-     */
-    public function isSingleton() {
-        return false;
-    }
 
     /**
      * Initialize the move handler.
@@ -61,13 +53,13 @@ class MoveHandler extends \Doku_Handler {
      *
      * @param string $old  the old, full qualified ID
      * @param string $type 'media' or 'page'
-     * @throws Exception on bad argument
+     * @throws \Exception on bad argument
      * @return string the new full qualified ID
      */
     public function resolveMoves($old, $type) {
         global $conf;
 
-        if($type != 'media' && $type != 'page') throw new Exception('Not a valid type');
+        if($type != 'media' && $type != 'page') throw new \Exception('Not a valid type');
 
         $old = resolve_id($this->origNS, $old, false);
 
@@ -123,12 +115,12 @@ class MoveHandler extends \Doku_Handler {
      * @param string $relold the old, possibly relative ID
      * @param string $new    the new, full qualified ID
      * @param string $type 'media' or 'page'
-     * @throws Exception on bad argument
+     * @throws \Exception on bad argument
      * @return string
      */
     public function relativeLink($relold, $new, $type) {
         global $conf;
-        if($type != 'media' && $type != 'page') throw new Exception('Not a valid type');
+        if($type != 'media' && $type != 'page') throw new \Exception('Not a valid type');
 
         // first check if the old link still resolves
         $exists = false;
