@@ -11,7 +11,6 @@
 use dokuwiki\Extension\Event;
 use dokuwiki\Extension\Plugin;
 use dokuwiki\Parsing\Parser;
-use dokuwiki\plugin\move\MoveHandler;
 
 
 /**
@@ -240,9 +239,16 @@ class helper_plugin_move_rewrite extends Plugin {
 
 
         // Create the parser
-        $Handler = new MoveHandler();
+        $Parser = new Parser(new Doku_Handler());
+        $Handler = new helper_plugin_move_handler();
         $Handler->init($id, $origin, $pages, $media, $handlers);
-        $Parser = new Parser($Handler);
+
+        // Use reflectiion to actually use our own handler (see docs at MoveHandler)
+        $reflectParser = new ReflectionClass(Parser::class);
+        $handlerProperty = $reflectParser->getProperty('handler');
+        $handlerProperty->setAccessible(true);
+        $handlerProperty->setValue($Parser, $Handler);
+
 
         //add modes to parser
         $modes = p_get_parsermodes();
@@ -251,7 +257,8 @@ class helper_plugin_move_rewrite extends Plugin {
         }
 
         $Parser->parse($text);
-        return $Handler->getWikiText();
+        $new = $Handler->getWikiText();
+        return $new;
     }
 
     /**

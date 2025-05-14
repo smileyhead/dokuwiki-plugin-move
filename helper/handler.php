@@ -6,18 +6,39 @@
  * @author     Michael Hamann <michael@content-space.de>
  */
 
-namespace dokuwiki\plugin\move;
-
+use dokuwiki\Extension\Plugin;
 use dokuwiki\File\MediaResolver;
 use dokuwiki\File\PageResolver;
 use dokuwiki\Logger;
+use dokuwiki\plugin\move\MoveResolver;
 
 /**
  * Handler class for move. It does the actual rewriting of the content.
+ *
+ * It is not really a helper plugin.
+ *
+ * This should theoretically be a descendant of Doku_Handler. This would require to implement and overwrite
+ * all the mode handler methods, which would probably be the cleaner approach. For now we pretend to be a
+ * Doku_Handler, implement only the methods we need and use __call() to catch all the rest.
+ *
+ * Since Parser does not like that and expects a Doku_Handler in the constructor, we use reflection to
+ * inject our fake handler into the Parser in helper_plugin_move_rewrite:rewrite()
+ *
+ * This is not really nice, but it works. It has at leas the advantage that we would not need to update this
+ * class when a new handler is introduced - though that hasn't happened in literally decades.
+ *
+ * The other hack we're doing here is to directly append (rewritten) matches to $wikitext. This makes it easy
+ * to basically keep the syntax as is and only change the IDs. A more proper approach would be create
+ * calls, then reverse-render them in the end. This can lead to slight differences between the original syntax
+ * and the reverse-rendered one, e.g. where syntax is somewhat ambiguous
+ *
+ * @todo At least do the right thing an make this a proper Doku_Handler descendant even when we keep the wikitext
  */
-class MoveHandler extends \Doku_Handler {
+class helper_plugin_move_handler extends Plugin {
+    public $calls = [];
+
     /**
-     * @var string This handler does not create calls, but rather recreats wiki text in one go.
+     * @var string This handler does not create calls, but rather recreates wiki text in one go.
      */
     public $wikitext = '';
 
