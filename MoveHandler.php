@@ -6,16 +6,19 @@
  * @author     Michael Hamann <michael@content-space.de>
  */
 
+namespace dokuwiki\plugin\move;
+
 // must be run within Dokuwiki
-if(!defined('DOKU_INC')) die();
+use dokuwiki\Logger;
 
 /**
  * Handler class for move. It does the actual rewriting of the content.
- *
- * Note: This is not actually a valid DokuWiki Helper plugin and can not be loaded via plugin_load()
  */
-class helper_plugin_move_handler extends DokuWiki_Plugin {
-    public $calls = '';
+class MoveHandler extends \Doku_Handler {
+    /**
+     * @var string This handler does not create calls, but rather recreats wiki text in one go.
+     */
+    public $wikitext = '';
 
     protected $id;
     protected $ns;
@@ -208,14 +211,14 @@ class helper_plugin_move_handler extends DokuWiki_Plugin {
 
         if($oldID == $newID || $this->origNS == $newNS) {
             // link is still valid as is
-            $this->calls .= $match;
+            $this->wikitext .= $match;
         } else {
             if(noNS($oldID) == noNS($newID)) {
                 // only namespace changed, keep CamelCase in link
-                $this->calls .= "[[$newNS:$match]]";
+                $this->wikitext .= "[[$newNS:$match]]";
             } else {
                 // all new, keep CamelCase in title
-                $this->calls .= "[[$newID|$match]]";
+                $this->wikitext .= "[[$newID|$match]]";
             }
         }
         return true;
@@ -252,19 +255,19 @@ class helper_plugin_move_handler extends DokuWiki_Plugin {
 
         if(preg_match('/^[a-zA-Z0-9\.]+>{1}.*$/u', $link[0])) {
             // Interwiki
-            $this->calls .= $match;
+            $this->wikitext .= $match;
         } elseif(preg_match('/^\\\\\\\\[^\\\\]+?\\\\/u', $link[0])) {
             // Windows Share
-            $this->calls .= $match;
+            $this->wikitext .= $match;
         } elseif(preg_match('#^([a-z0-9\-\.+]+?)://#i', $link[0])) {
             // external link (accepts all protocols)
-            $this->calls .= $match;
+            $this->wikitext .= $match;
         } elseif(preg_match('<' . PREG_PATTERN_VALID_EMAIL . '>', $link[0])) {
             // E-Mail (pattern above is defined in inc/mail.php)
-            $this->calls .= $match;
+            $this->wikitext .= $match;
         } elseif(preg_match('!^#.+!', $link[0])) {
             // local hash link
-            $this->calls .= $match;
+            $this->wikitext .= $match;
         } else {
             $id = $link[0];
 
@@ -286,7 +289,7 @@ class helper_plugin_move_handler extends DokuWiki_Plugin {
             $new_id = $this->relativeLink($id, $new_id, 'page');
 
             if($id == $new_id) {
-                $this->calls .= $match;
+                $this->wikitext .= $match;
             } else {
                 if($params !== '') {
                     $new_id .= '?' . $params;
@@ -300,7 +303,7 @@ class helper_plugin_move_handler extends DokuWiki_Plugin {
                     $new_id .= '|' . $link[1];
                 }
 
-                $this->calls .= '[[' . $new_id . ']]';
+                $this->wikitext .= '[[' . $new_id . ']]';
             }
 
         }
@@ -317,7 +320,7 @@ class helper_plugin_move_handler extends DokuWiki_Plugin {
      * @return bool If parsing should be continued
      */
     public function media($match, $state, $pos) {
-        $this->calls .= $this->rewrite_media($match);
+        $this->wikitext .= $this->rewrite_media($match);
         return true;
     }
 
@@ -355,9 +358,9 @@ class helper_plugin_move_handler extends DokuWiki_Plugin {
      */
     public function plugin($match, $state, $pos, $pluginname) {
         if(isset($this->handlers[$pluginname])) {
-            $this->calls .= call_user_func($this->handlers[$pluginname], $match, $state, $pos, $pluginname, $this);
+            $this->wikitext .= call_user_func($this->handlers[$pluginname], $match, $state, $pos, $pluginname, $this);
         } else {
-            $this->calls .= $match;
+            $this->wikitext .= $match;
         }
         return true;
     }
@@ -371,17 +374,29 @@ class helper_plugin_move_handler extends DokuWiki_Plugin {
      */
     public function __call($name, $params) {
         if(count($params) == 3) {
-            $this->calls .= $params[0];
+            $this->wikitext .= $params[0];
             return true;
         } else {
-            trigger_error('Error, handler function ' . hsc($name) . ' with ' . count($params) . ' parameters called which isn\'t implemented', E_USER_ERROR);
+            Logger::error(
+                'Error, handler function ' . hsc($name) . ' with ' . count($params) .
+                ' parameters called which isn\'t implemented'
+            );
             return false;
         }
     }
 
-    public function _finalize() {
+    public function finalize() {
         // remove padding that is added by the parser in parse()
-        $this->calls = substr($this->calls, 1, -1);
+        $this->wikitext = substr($this->wikitext, 1, -1);
     }
 
+    /**
+     * Get the rewritten wiki text
+     *
+     * @return string The rewritten wiki text
+     */
+    public function getWikiText()
+    {
+        return $this->wikitext;
+    }
 }
