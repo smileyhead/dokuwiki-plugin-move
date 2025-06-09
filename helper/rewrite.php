@@ -143,7 +143,7 @@ class helper_plugin_move_rewrite extends Plugin {
     public static function isLocked() {
         global $PLUGIN_MOVE_WORKING;
         global $conf;
-        $lockfile = $conf['lockdir'] . self::LOCKFILENAME;
+        $lockfile = $conf['lockdir'] . '/' . self::LOCKFILENAME;
         return ((isset($PLUGIN_MOVE_WORKING) && $PLUGIN_MOVE_WORKING > 0) || file_exists($lockfile));
     }
 
@@ -154,7 +154,7 @@ class helper_plugin_move_rewrite extends Plugin {
         global $PLUGIN_MOVE_WORKING;
         global $conf;
         $PLUGIN_MOVE_WORKING = $PLUGIN_MOVE_WORKING ? $PLUGIN_MOVE_WORKING + 1 : 1;
-        $lockfile = $conf['lockdir'] . self::LOCKFILENAME;
+        $lockfile = $conf['lockdir'] . '/' . self::LOCKFILENAME;
         if (!file_exists($lockfile)) {
             io_savefile($lockfile, "1\n");
         } else {
@@ -171,7 +171,7 @@ class helper_plugin_move_rewrite extends Plugin {
         global $PLUGIN_MOVE_WORKING;
         global $conf;
         $PLUGIN_MOVE_WORKING = $PLUGIN_MOVE_WORKING ? $PLUGIN_MOVE_WORKING - 1 : 0;
-        $lockfile = $conf['lockdir'] . self::LOCKFILENAME;
+        $lockfile = $conf['lockdir'] . '/' .self::LOCKFILENAME;
         if (!file_exists($lockfile)) {
             throw new Exception("removeLock failed: lockfile missing");
         } else {
@@ -192,7 +192,7 @@ class helper_plugin_move_rewrite extends Plugin {
      */
     public static function removeAllLocks() {
         global $conf;
-        $lockfile = $conf['lockdir'] . self::LOCKFILENAME;
+        $lockfile = $conf['lockdir'] . '/' . self::LOCKFILENAME;
         if (file_exists($lockfile)) {
             unlink($lockfile);
         }
