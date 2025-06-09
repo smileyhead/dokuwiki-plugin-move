@@ -7,18 +7,18 @@
  * @author     Gary Owen <gary@isection.co.uk>
  * @author     Andreas Gohr <gohr@cosmocode.de>
  */
-// must be run within Dokuwiki
-if(!defined('DOKU_INC')) die();
 
-// load required handler class
-require_once(dirname(__FILE__) . '/handler.php');
+use dokuwiki\Extension\Event;
+use dokuwiki\Extension\Plugin;
+use dokuwiki\Parsing\Parser;
+
 
 /**
  * Class helper_plugin_move_rewrite
  *
  * This class handles the rewriting of wiki text to update the links
  */
-class helper_plugin_move_rewrite extends DokuWiki_Plugin {
+class helper_plugin_move_rewrite extends Plugin {
 
     /**
      * Under what key is move data to be saved in metadata
@@ -234,24 +234,31 @@ class helper_plugin_move_rewrite extends DokuWiki_Plugin {
          * that handle multiple plugins can distinguish for which the match is. The last parameter is the handler object
          * which is an instance of helper_plugin_move_handle
          */
-        trigger_event('PLUGIN_MOVE_HANDLERS_REGISTER', $data);
+        Event::createAndTrigger('PLUGIN_MOVE_HANDLERS_REGISTER', $data);
 
-        $modes = p_get_parsermodes();
+
 
         // Create the parser
-        $Parser = new Doku_Parser();
+        $Parser = new Parser(new Doku_Handler());
+        $Handler = new helper_plugin_move_handler();
+        $Handler->init($id, $origin, $pages, $media, $handlers);
 
-        // Add the Handler
-        /** @var $Parser->Handler helper_plugin_move_handler */
-        $Parser->Handler = $this->loadHelper('move_handler');
-        $Parser->Handler->init($id, $origin, $pages, $media, $handlers);
+        // Use reflectiion to actually use our own handler (see docs at MoveHandler)
+        $reflectParser = new ReflectionClass(Parser::class);
+        $handlerProperty = $reflectParser->getProperty('handler');
+        $handlerProperty->setAccessible(true);
+        $handlerProperty->setValue($Parser, $Handler);
+
 
         //add modes to parser
+        $modes = p_get_parsermodes();
         foreach($modes as $mode) {
             $Parser->addMode($mode['mode'], $mode['obj']);
         }
 
-        return $Parser->parse($text);
+        $Parser->parse($text);
+        $new = $Handler->getWikiText();
+        return $new;
     }
 
     /**
